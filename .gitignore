@@ -1,0 +1,5 @@
+*config*
+*DS_Store*
+*.eggs/*
+*.egg-info/*
+*__pycache__*

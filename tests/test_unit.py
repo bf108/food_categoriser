@@ -51,3 +51,13 @@ def test_get_ingredient_id():
     assert api.get_ingredient_id('butter') == 1001
     assert api.get_ingredient_id('BUTTER') == 1001
     assert api.get_ingredient_id('xxxx') == None
+
+def test_get_info_concise():
+    api = API(API_KEY)
+    resp = {'id': 2047,
+        'name': 'table salt',
+        'image': 'salt.jpg',
+        'categoryPath': ['salt']}
+    assert api.get_info_concise('table salt') == resp
+    with pytest.raises(Exception) as e_info:
+        assert api.get_info_concise('xxxx')

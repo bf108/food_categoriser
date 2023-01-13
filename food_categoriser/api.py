@@ -56,3 +56,15 @@ class API:
             else:
                 return None
         raise AttributeError('Ingredient Not Found')
+
+    def get_info_concise(self, ingredient: str) -> Union[Dict,None]:
+        full_results = self.get_info_ingredient(ingredient)
+        consise = {ingredient: 'not available'}
+        if full_results:
+            concise = {'id': full_results['id'],
+                        'name': full_results['original'].lower(),
+                        'image': full_results['image'],
+                        'categoryPath': full_results['categoryPath'],
+                        }
+        return concise
+        

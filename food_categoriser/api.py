@@ -12,30 +12,47 @@ class API:
         self.apiKey = apiKey
         self.timeout = 5
         self.params = {'apiKey':self.apiKey}
-        self.ingredient_id_mappings = pd.read_csv('data/ingredients.csv',sep=';')\
-                                    .set_index('ingredientId')\
-                                    .to_dict()['ingredient']
+        self.data = pd.read_csv(os.path.join(os.path.dirname(__file__),'data/ingredients.csv'),sep=';')
+        self.valid_ids = list(self.data['ingredientId'].unique())
+        df = self.data.copy()
+        df['ingredient'] = df['ingredient'].str.strip().str.lower()
+        self.ing_id_map = df.set_index('ingredient').to_dict()['ingredientId']
 
-    def _gen_url(self,id:int):
+    def check_valid_id(self, id: int) -> bool:
+        return id in self.valid_ids
+    
+    def get_ingredient_id(self, ingredient: str) -> Union[int, None]:
+        ing = ingredient.strip().lower()
+        return self.ing_id_map[ing] if ing in self.ing_id_map.keys() else None
+
+    def _gen_url(self, id: int):
         endpoint = f"food/ingredients/{id}/information"
         url = f"{self.api_root}{endpoint}"
         return url
 
-    def get_info(self, id: int) -> Union[Dict,None]:
-        url = self._gen_url(id)
-        resp = self.session.request(method='GET',
-                                    url=url,
-                                    params=self.params,
-                                    timeout=self.timeout)
-        if resp.status_code == 200:
-            return resp.json()
-        else:
-            return None
+    def get_info_id(self, id: int) -> Union[Dict,None]:
+        if self.check_valid_id(id):
+            url = self._gen_url(id)
+            resp = self.session.request(method='GET',
+                                        url=url,
+                                        params=self.params,
+                                        timeout=self.timeout)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                return None
+        raise AttributeError('Invalid id')
 
-
-
-
-
-
-
-
+    def get_info_ingredient(self, ingredient: str) -> Union[Dict,None]:
+        if ingredient in self.ing_id_map.keys():
+            id = self.ing_id_map[ingredient]
+            url = self._gen_url(id)
+            resp = self.session.request(method='GET',
+                                        url=url,
+                                        params=self.params,
+                                        timeout=self.timeout)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                return None
+        raise AttributeError('Ingredient Not Found')

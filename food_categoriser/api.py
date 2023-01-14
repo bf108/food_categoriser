@@ -20,52 +20,56 @@ class API:
 
     def check_valid_id(self, id: int) -> bool:
         return id in self.valid_ids
-    
-    def get_ingredient_id(self, ingredient: str) -> Union[int, None]:
-        ing = ingredient.strip().lower()
-        return self.ing_id_map[ing] if ing in self.ing_id_map.keys() else None
 
     def _gen_url(self, id: int):
         endpoint = f"food/ingredients/{id}/information"
         url = f"{self.api_root}{endpoint}"
         return url
-
-    def get_info_id(self, id: int) -> Union[Dict,None]:
-        if self.check_valid_id(id):
-            url = self._gen_url(id)
-            resp = self.session.request(method='GET',
+    
+    def _get_response(self, url: str) -> Union[requests.models.Response]:
+        return self.session.request(method='GET',
                                         url=url,
                                         params=self.params,
                                         timeout=self.timeout)
-            if resp.status_code == 200:
-                return resp.json()
-            else:
-                return None
-        raise AttributeError('Invalid id')
 
-    def get_info_ingredient(self, ingredient: str) -> Union[Dict,None]:
+    def _eval_response(self, resp: requests.models.Response) -> Dict:
+        if resp.status_code == 200:
+            return resp.json()
+        elif resp.status_code == 401:
+            raise AttributeError('Invalid Credentials')
+        elif resp.status_code == 404:
+            raise AttributeError('404 Not Found')
+        else:
+            raise AttributeError(f'Error: {resp.status_code}')
+
+    def get_info_id(self, id: int) -> Dict:
+        if self.check_valid_id(id):
+            url = self._gen_url(id)
+            resp = self._get_response(url)
+            return self._eval_response(resp)
+        raise AttributeError('Invalid Id')
+
+    def get_info_ingredient(self, ingredient: str) -> Dict:
         if ingredient in self.ing_id_map.keys():
             id = self.ing_id_map[ingredient]
             url = self._gen_url(id)
-            resp = self.session.request(method='GET',
-                                        url=url,
-                                        params=self.params,
-                                        timeout=self.timeout)
-            if resp.status_code == 200:
-                return resp.json()
-            else:
-                return None
+            resp = self._get_response(url)
+            return self._eval_response(resp)
         raise AttributeError('Ingredient Not Found')
 
-    def get_info_concise(self, ingredient: str) -> Union[Dict,None]:
+    def get_info_concise(self, ingredient: str) -> Dict:
         try:
             full_results = self.get_info_ingredient(ingredient)
             concise = {'id': full_results['id'],
                         'name': full_results['original'].lower(),
                         'image': full_results['image'],
                         'categoryPath': full_results['categoryPath'],
+                        'response':200 
                         }
             return concise
-        except:
-            return {ingredient: 'no data available'}
-        
+        except AttributeError as exp:
+            return {'id': None,
+                    'name': ingredient.strip().lower(),
+                    'image': None,
+                    'categoryPath': [None],
+                    'response': f"{exp}"}
